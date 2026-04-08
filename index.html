@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080E1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Command Center">
+<link rel="manifest" href="manifest.json">
+<title>Midhun's Command Center</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --bg: #080E1A;
+    --surface: #0D1F3C;
+    --surface2: #0A1628;
+    --border: #00AEEF20;
+    --cyan: #00AEEF;
+    --green: #00D68F;
+    --red: #FF4B4B;
+    --yellow: #FFB547;
+    --text: #E8EDF5;
+    --text2: #8AA4C2;
+    --text3: #3D5A7A;
+    --font: 'DM Mono', 'Courier New', monospace;
+  }
+
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text);
+    font-family: var(--font); overflow: hidden;
+  }
+
+  #app { display: flex; flex-direction: column; height: 100vh; height: -webkit-fill-available; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  .header-left .title { font-size: 11px; letter-spacing: 3px; color: var(--cyan); font-weight: 700; }
+  .header-left .subtitle { font-size: 9px; color: var(--text3); letter-spacing: 2px; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .time { font-size: 20px; color: var(--text); letter-spacing: 1px; font-weight: 300; }
+  .header-right .date { font-size: 9px; color: var(--text3); letter-spacing: 1px; margin-top: 2px; }
+
+  /* PAGES */
+  .pages { flex: 1; overflow: hidden; position: relative; }
+  .page { position: absolute; inset: 0; overflow-y: auto; padding: 14px 14px 80px; display: none; }
+  .page.active { display: block; }
+  .page::-webkit-scrollbar { display: none; }
+
+  /* BOTTOM NAV */
+  .nav {
+    display: flex; background: var(--surface2);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; background: none; border: none; color: var(--text3);
+    padding: 10px 4px 8px; cursor: pointer; font-family: var(--font);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--cyan); }
+  .nav-btn .nav-icon { font-size: 18px; line-height: 1; }
+  .nav-btn .nav-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; }
+  .nav-btn .nav-badge {
+    position: absolute; top: 6px; right: calc(50% - 18px);
+    background: var(--red); color: white; border-radius: 8px;
+    font-size: 8px; padding: 1px 4px; min-width: 14px; text-align: center;
+  }
+  .nav-btn { position: relative; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px; margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 9px; letter-spacing: 3px; color: var(--cyan);
+    text-transform: uppercase; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title span:last-child { color: var(--text2); }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .stat-card {
+    background: var(--surface); border-radius: 6px; padding: 12px 10px;
+    border-left: 3px solid var(--cyan); text-align: center;
+  }
+  .stat-card.red { border-left-color: var(--red); }
+  .stat-card.green { border-left-color: var(--green); }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--cyan); line-height: 1; }
+  .stat-card.red .stat-num { color: var(--red); }
+  .stat-card.green .stat-num { color: var(--green); }
+  .stat-label { font-size: 8px; letter-spacing: 1px; color: var(--text3); margin-top: 4px; text-transform: uppercase; }
+
+  /* INPUT ROW */
+  .input-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .input-row.stack { flex-direction: column; }
+  input[type=text], select, textarea {
+    background: var(--bg); border: 1px solid #00AEEF30;
+    border-radius: 4px; padding: 10px 12px; color: var(--text);
+    font-family: var(--font); font-size: 13px; outline: none;
+    width: 100%; -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  input[type=text]:focus, select:focus { border-color: var(--cyan); }
+  select { background-image: none; }
+  .sel-row { display: flex; gap: 6px; }
+  select { flex: 1; font-size: 11px; padding: 8px 10px; }
+
+  /* BUTTONS */
+  .btn {
+    background: #00AEEF20; border: 1px solid #00AEEF40;
+    border-radius: 4px; padding: 10px 14px; color: var(--cyan);
+    cursor: pointer; font-family: var(--font); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase; white-space: nowrap;
+    transition: background 0.2s; -webkit-appearance: none;
+  }
+  .btn:active { background: #00AEEF35; }
+  .btn.full { width: 100%; padding: 12px; font-size: 11px; }
+  .btn.green { background: #00D68F15; border-color: #00D68F40; color: var(--green); }
+  .btn.red { background: #FF4B4B15; border-color: #FF4B4B40; color: var(--red); }
+
+  /* VOICE BUTTON */
+  .voice-btn {
+    background: #00AEEF15; border: 1px solid #00AEEF40;
+    border-radius: 4px; padding: 10px 12px; color: var(--cyan);
+    cursor: pointer; font-size: 18px; line-height: 1; flex-shrink: 0;
+    transition: all 0.2s; -webkit-appearance: none;
+  }
+  .voice-btn.recording {
+    background: #FF4B4B25; border-color: #FF4B4B60; color: var(--red);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  /* ITEMS */
+  .item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px; background: var(--bg);
+    border-radius: 4px; margin-bottom: 6px;
+    border-left: 2px solid transparent;
+  }
+  .item.high { border-left-color: #FF4B4B50; }
+  .item.medium { border-left-color: #FFB54750; }
+  .item.low { border-left-color: #00AEEF50; }
+  .item-text { flex: 1; font-size: 13px; color: var(--text2); line-height: 1.4; word-break: break-word; }
+  .item-text.done-text { color: #4A6A8A; }
+  .item-ts { font-size: 9px; color: var(--text3); white-space: nowrap; margin-top: 2px; }
+  .tag {
+    font-size: 8px; letter-spacing: 1px; border-radius: 2px;
+    padding: 2px 5px; white-space: nowrap; font-weight: 700; flex-shrink: 0;
+  }
+  .tag.high { background: #FF4B4B20; color: var(--red); border: 1px solid #FF4B4B40; }
+  .tag.medium { background: #FFB54720; color: var(--yellow); border: 1px solid #FFB54740; }
+  .tag.low { background: #00AEEF20; color: var(--cyan); border: 1px solid #00AEEF40; }
+  .tag.today { background: #00D68F15; color: var(--green); border: 1px solid #00D68F30; }
+  .tag.week { background: #00AEEF15; color: var(--cyan); border: 1px solid #00AEEF30; }
+  .tag.month { background: #FFB54715; color: var(--yellow); border: 1px solid #FFB54730; }
+  .tag.later { background: #3D5A7A20; color: var(--text3); border: 1px solid #3D5A7A40; }
+
+  .icon-btn {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1;
+    flex-shrink: 0; transition: color 0.2s;
+  }
+  .icon-btn.complete:active { color: var(--green); }
+  .icon-btn.delete:active { color: var(--red); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 28px 20px; color: var(--text3); font-size: 10px; letter-spacing: 2px; }
+
+  /* PROGRESS */
+  .progress-bar { height: 3px; background: var(--bg); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.5s; }
+
+  /* SETTINGS */
+  .setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 12px; color: var(--text2); }
+  .setting-sub { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 1px; }
+
+  /* SECTION HEADER */
+  .section-header {
+    font-size: 9px; letter-spacing: 3px; color: var(--text3);
+    text-transform: uppercase; padding: 6px 0 8px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #00D68F; color: #080E1A; border-radius: 20px;
+    padding: 8px 18px; font-size: 11px; letter-spacing: 1px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* VOICE STATUS */
+  .voice-status { font-size: 10px; color: var(--red); letter-spacing: 1px; padding: 4px 0; min-height: 18px; }
+
+  /* FILTER TABS */
+  .filter-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filter-tab {
+    background: none; border: 1px solid var(--border); border-radius: 3px;
+    padding: 5px 10px; color: var(--text3); cursor: pointer;
+    font-family: var(--font); font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .filter-tab.active { background: #00AEEF15; border-color: #00AEEF40; color: var(--cyan); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="title">⬡ COMMAND CENTER</div>
+      <div class="subtitle">MIDHUN · POLARIS</div>
+    </div>
+    <div class="header-right">
+      <div class="time" id="clock">00:00:00</div>
+      <div class="date" id="dateDisplay"></div>
+    </div>
+  </div>
+
+  <div class="pages">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dash">
+      <div class="stats">
+        <div class="stat-card green">
+          <div class="stat-num" id="statDone">0</div>
+          <div class="stat-label">Done Today</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-num" id="statPending">0</div>
+          <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-num" id="statHigh">0</div>
+          <div class="stat-label">High Pri</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">✓ Log Completed</div>
+        <div class="input-row">
+          <input type="text" id="dashDoneInput" placeholder="What did you just finish..." />
+          <button class="voice-btn" id="voiceDash" onclick="startVoice('dashDoneInput', 'voiceDash')">🎤</button>
+        </div>
+        <div class="voice-status" id="voiceDashStatus"></div>
+        <button class="btn full" onclick="addDoneFromDash()">+ LOG IT</button>
+      </div>
+
+      <div class="card" id="dashHighCard" style="display:none">
+        <div class="card-title">◎ HIGH PRIORITY <span id="dashHighCount"></span></div>
+        <div id="dashHighList"></div>
+      </div>
+
+      <div class="card" id="dashRecentCard">
+        <div class="card-title">✓ Recent <span id="dashRecentCount"></span></div>
+        <div id="dashRecentList"></div>
+      </div>
+    </div>
+
+    <!-- PENDING -->
+    <div class="page" id="page-pending">
+      <div class="card">
+        <div class="card-title">+ Add Pending Task</div>
+        <div class="input-row">
+          <input type="text" id="pendingInput" placeholder="Task or action item..." />
+          <button class="voice-btn" id="voicePending" onclick="startVoice('pendingInput', 'voicePending')">🎤</button>
+        </div>
+        <div class="voice-status" id="voicePendingStatus"></div>
+        <div class="sel-row" style="margin-bottom:8px">
+          <select id="pendingPriority">
+            <option value="high">🔴 High Priority</option>
+            <option value="medium" selected>🟡 Medium Priority</option>
+            <option value="low">🔵 Low Priority</option>
+          </select>
+          <select id="pendingDue">
+            <option value="today">Due Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="later">Later</option>
+          </select>
+        </div>
+        <button class="btn full" onclick="addPending()">+ ADD TASK</button>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterPending('all', this)">ALL</button>
+        <button class="filter-tab" onclick="filterPending('high', this)">HIGH</button>
+        <button class="filter-tab" onclick="filterPending('today', this)">TODAY</button>
+        <button class="filter-tab" onclick="filterPending('week', this)">WEEK</button>
+      </div>
+
+      <div id="pendingList"></div>
+    </div>
+
+    <!-- DONE -->
+    <div class="page" id="page-done">
+      <div class="card">
+        <div class="card-title">✓ Log Completed</div>
+        <div class="input-row">
+          <input type="text" id="doneInput" placeholder="What did you complete..." />
+          <button class="voice-btn" id="voiceDone" onclick="startVoice('doneInput', 'voiceDone')">🎤</button>
+        </div>
+        <div class="voice-status" id="voiceDoneStatus"></div>
+        <button class="btn full" onclick="addDone()">+ LOG COMPLETED</button>
+      </div>
+      <div id="doneList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-title">APP INFO</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Midhun's Command Center</div><div class="setting-sub">VERSION 1.0 · POLARIS</div></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Total Completed</div><div class="setting-sub" id="setTotalDone">—</div></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Pending Tasks</div><div class="setting-sub" id="setTotalPending">—</div></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Voice Input</div><div class="setting-sub" id="setVoiceStatus">—</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">DATA</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Export All Data</div><div class="setting-sub">COPY TO CLIPBOARD</div></div>
+          <button class="btn" onclick="exportData()">EXPORT</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Clear Today's Done</div><div class="setting-sub">REMOVE TODAY'S LOG</div></div>
+          <button class="btn red" onclick="clearTodayDone()">CLEAR</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Clear All Pending</div><div class="setting-sub">REMOVE ALL TASKS</div></div>
+          <button class="btn red" onclick="clearPending()">CLEAR</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Reset Everything</div><div class="setting-sub">WIPE ALL DATA</div></div>
+          <button class="btn red" onclick="resetAll()">RESET</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">INSTALL AS APP</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Add to Home Screen</div>
+            <div class="setting-sub">CHROME → ⋮ MENU → ADD TO HOME SCREEN</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('dash', this)">
+      <span class="nav-icon">⌂</span>
+      <span class="nav-label">Dash</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('pending', this)" id="navPending">
+      <span class="nav-icon">◎</span>
+      <span class="nav-label">Pending</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('done', this)">
+      <span class="nav-icon">✓</span>
+      <span class="nav-label">Done</span>
+    </button>
+    <button class="nav-btn" onclick="showPage('settings', this)">
+      <span class="nav-icon">⚙</span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ──────────────────────────────────────────────
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+let pendingItems = load('cc_pending', []);
+let doneItems = load('cc_done', {}); // keyed by date
+
+function savePending() { save('cc_pending', pendingItems); }
+function saveDone() { save('cc_done', doneItems); }
+
+function getTodayDone() { return doneItems[getTodayKey()] || []; }
+function setTodayDone(arr) { doneItems[getTodayKey()] = arr; saveDone(); }
+
+// ── CLOCK ─────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('dateDisplay').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── NAVIGATION ────────────────────────────────────────────
+let currentPage = 'dash';
+function showPage(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  btn.classList.add('active');
+  currentPage = page;
+  renderAll();
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── VOICE ─────────────────────────────────────────────────
+let recognizing = false;
+let recognition = null;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function startVoice(inputId, btnId) {
+  if (!SR) { showToast('Voice not supported on this browser'); return; }
+  if (recognizing) { recognition && recognition.stop(); return; }
+
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  const statusId = btnId.replace('voice', 'voice') + 'Status';
+  // map btn ids to status ids
+  const statusMap = {
+    'voiceDash': 'voiceDashStatus',
+    'voicePending': 'voicePendingStatus',
+    'voiceDone': 'voiceDoneStatus'
+  };
+  const statusEl = document.getElementById(statusMap[btnId]);
+
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    recognizing = true;
+    btn.classList.add('recording');
+    btn.textContent = '🔴';
+    if (statusEl) statusEl.textContent = '● LISTENING...';
+  };
+
+  recognition.onresult = (e) => {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    input.value = transcript;
+    if (statusEl) statusEl.textContent = transcript ? `"${transcript.slice(0, 40)}..."` : '● LISTENING...';
+  };
+
+  recognition.onend = () => {
+    recognizing = false;
+    btn.classList.remove('recording');
+    btn.textContent = '🎤';
+    if (statusEl) statusEl.textContent = '';
+  };
+
+  recognition.onerror = (e) => {
+    recognizing = false;
+    btn.classList.remove('recording');
+    btn.textContent = '🎤';
+    if (statusEl) statusEl.textContent = '';
+    if (e.error !== 'no-speech') showToast('Voice error: ' + e.error);
+  };
+
+  recognition.start();
+}
+
+// ── ADD DONE ──────────────────────────────────────────────
+function addDoneItem(text) {
+  if (!text.trim()) return false;
+  const today = getTodayDone();
+  today.push({ id: Date.now(), text: text.trim(), ts: new Date().toISOString() });
+  setTodayDone(today);
+  return true;
+}
+
+function addDone() {
+  const input = document.getElementById('doneInput');
+  if (addDoneItem(input.value)) {
+    input.value = ''; showToast('✓ Logged!'); renderAll();
+  }
+}
+
+function addDoneFromDash() {
+  const input = document.getElementById('dashDoneInput');
+  if (addDoneItem(input.value)) {
+    input.value = ''; showToast('✓ Logged!'); renderAll();
+  }
+}
+
+// ── ADD PENDING ───────────────────────────────────────────
+function addPending() {
+  const input = document.getElementById('pendingInput');
+  const text = input.value.trim();
+  if (!text) return;
+  pendingItems.push({
+    id: Date.now(),
+    text,
+    priority: document.getElementById('pendingPriority').value,
+    due: document.getElementById('pendingDue').value,
+    created: getTodayKey()
+  });
+  savePending();
+  input.value = '';
+  showToast('Task added');
+  renderAll();
+}
+
+function completePendingItem(id) {
+  const item = pendingItems.find(i => i.id === id);
+  if (item) { addDoneItem('✓ ' + item.text); }
+  pendingItems = pendingItems.filter(i => i.id !== id);
+  savePending(); renderAll(); showToast('✓ Completed!');
+}
+
+function deletePendingItem(id) {
+  pendingItems = pendingItems.filter(i => i.id !== id);
+  savePending(); renderAll(); showToast('Removed');
+}
+
+function deleteDoneItem(id) {
+  const today = getTodayDone().filter(i => i.id !== id);
+  setTodayDone(today); renderAll();
+}
+
+// ── FILTER ────────────────────────────────────────────────
+let pendingFilter = 'all';
+function filterPending(f, btn) {
+  pendingFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPending();
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────
+function priorityTag(p) { return `<span class="tag ${p}">${p.toUpperCase()}</span>`; }
+function dueTag(d) { return `<span class="tag ${d}">${d.toUpperCase()}</span>`; }
+
+function renderPendingItem(item) {
+  return `<div class="item ${item.priority}" id="pi-${item.id}">
+    <div style="flex:1">
+      <div class="item-text">${escHtml(item.text)}</div>
+      <div style="display:flex;gap:4px;margin-top:5px">${priorityTag(item.priority)}${dueTag(item.due)}</div>
+    </div>
+    <button class="icon-btn complete" onclick="completePendingItem(${item.id})" title="Done">✓</button>
+    <button class="icon-btn delete" onclick="deletePendingItem(${item.id})" title="Delete">×</button>
+  </div>`;
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderPending() {
+  const el = document.getElementById('pendingList');
+  if (!el) return;
+  let items = [...pendingItems];
+  if (pendingFilter === 'high') items = items.filter(i => i.priority === 'high');
+  else if (pendingFilter === 'today') items = items.filter(i => i.due === 'today');
+  else if (pendingFilter === 'week') items = items.filter(i => i.due === 'week');
+
+  // sort by priority
+  const order = { high: 0, medium: 1, low: 2 };
+  items.sort((a, b) => order[a.priority] - order[b.priority]);
+
+  if (!items.length) { el.innerHTML = `<div class="empty">NO TASKS HERE</div>`; return; }
+  el.innerHTML = items.map(renderPendingItem).join('');
+}
+
+function renderDone() {
+  const el = document.getElementById('doneList');
+  if (!el) return;
+  const today = getTodayDone();
+  // Group by date
+  const allDates = Object.keys(doneItems).sort().reverse();
+  let html = '';
+  for (const date of allDates.slice(0, 7)) {
+    const items = doneItems[date] || [];
+    if (!items.length) continue;
+    const label = date === getTodayKey() ? 'TODAY' : date;
+    html += `<div class="section-header">${label} · ${items.length} ITEMS</div>`;
+    html += [...items].reverse().map(item => `
+      <div class="item">
+        <span style="color:var(--green);font-size:12px;margin-top:2px">✓</span>
+        <div style="flex:1">
+          <div class="item-text done-text">${escHtml(item.text)}</div>
+          <div class="item-ts">${new Date(item.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+        </div>
+        <button class="icon-btn delete" onclick="deleteDoneItem(${item.id})">×</button>
+      </div>`).join('');
+  }
+  if (!html) html = `<div class="empty">NOTHING LOGGED YET</div>`;
+  el.innerHTML = html;
+}
+
+function renderDash() {
+  const today = getTodayDone();
+  const high = pendingItems.filter(i => i.priority === 'high');
+
+  document.getElementById('statDone').textContent = today.length;
+  document.getElementById('statPending').textContent = pendingItems.length;
+  document.getElementById('statHigh').textContent = high.length;
+
+  // badge
+  const badge = document.querySelector('#navPending .nav-badge');
+  if (pendingItems.length > 0) {
+    if (!badge) {
+      const b = document.createElement('span');
+      b.className = 'nav-badge'; b.id = 'pendingBadge';
+      document.getElementById('navPending').appendChild(b);
+    }
+    document.getElementById('pendingBadge') && (document.getElementById('pendingBadge').textContent = pendingItems.length);
+  } else {
+    const b = document.getElementById('pendingBadge');
+    if (b) b.remove();
+  }
+
+  // high priority card
+  const hCard = document.getElementById('dashHighCard');
+  const hList = document.getElementById('dashHighList');
+  if (high.length > 0) {
+    hCard.style.display = 'block';
+    document.getElementById('dashHighCount').textContent = high.length;
+    hList.innerHTML = high.slice(0, 3).map(renderPendingItem).join('');
+  } else { hCard.style.display = 'none'; }
+
+  // recent done
+  const rList = document.getElementById('dashRecentList');
+  const rCount = document.getElementById('dashRecentCount');
+  if (today.length === 0) {
+    rCount.textContent = '0';
+    rList.innerHTML = `<div class="empty">NOTHING LOGGED TODAY YET</div>`;
+  } else {
+    rCount.textContent = today.length;
+    rList.innerHTML = [...today].reverse().slice(0, 4).map(item => `
+      <div class="item">
+        <span style="color:var(--green);font-size:12px;margin-top:2px">✓</span>
+        <div class="item-text done-text" style="color:var(--text2)">${escHtml(item.text)}</div>
+        <div class="item-ts">${new Date(item.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}</div>
+      </div>`).join('');
+  }
+}
+
+function renderSettings() {
+  const allDone = Object.values(doneItems).flat().length;
+  document.getElementById('setTotalDone').textContent = allDone + ' TOTAL ITEMS LOGGED';
+  document.getElementById('setTotalPending').textContent = pendingItems.length + ' ACTIVE TASKS';
+  document.getElementById('setVoiceStatus').textContent = SR ? 'SUPPORTED ✓' : 'NOT SUPPORTED ON THIS BROWSER';
+}
+
+function renderAll() {
+  renderDash();
+  if (currentPage === 'pending') renderPending();
+  if (currentPage === 'done') renderDone();
+  if (currentPage === 'settings') renderSettings();
+}
+
+// ── DATA ACTIONS ──────────────────────────────────────────
+function exportData() {
+  const data = JSON.stringify({ pending: pendingItems, done: doneItems, exported: new Date().toISOString() }, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(data).then(() => showToast('Copied to clipboard!'));
+  } else { alert(data); }
+}
+
+function clearTodayDone() {
+  if (!confirm('Clear today\'s completed items?')) return;
+  setTodayDone([]); renderAll(); showToast('Cleared');
+}
+
+function clearPending() {
+  if (!confirm('Clear all pending tasks?')) return;
+  pendingItems = []; savePending(); renderAll(); showToast('Cleared');
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL data? This cannot be undone.')) return;
+  pendingItems = []; doneItems = {};
+  savePending(); saveDone(); renderAll(); showToast('Reset complete');
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (currentPage === 'dash') addDoneFromDash();
+    if (currentPage === 'done') addDone();
+    if (currentPage === 'pending') addPending();
+  }
+});
+
+// ── SERVICE WORKER ────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── INIT ──────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
